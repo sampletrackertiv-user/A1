@@ -131,7 +131,7 @@ export const dataImportService = {
     for (const row of rawData) {
         let customerId = '';
         const cleanPhone = normalizePhone(row.phone || '');
-        const existingCust = storageService.findMatchingCustomer(cleanPhone, row.address, row.customer_name);
+        const existingCust = storageService.findMatchingCustomer(cleanPhone, row.address);
         
         if (existingCust) {
             customerId = existingCust.id;

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo, useRef, useDeferredValue, useCallb
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Order, OrderStatus, PaymentMethod, OrderItem, Product, Customer, ShopConfig, BankConfig } from '../types';
-import { storageService, normalizePhone, normalizeString, calculateProductPrice, sanitize, safeSave } from '../services/storageService';
+import { storageService, normalizePhone, normalizeString, calculateProductPrice } from '../services/storageService';
 import { pdfService } from '../services/pdfService';
 import { OrderCard } from './OrderCard';
 import ConfirmModal from './ConfirmModal';
@@ -43,7 +43,7 @@ const TrackingDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-      safeSave('ecogo_filter_batch', filterBatch);
+      localStorage.setItem('ecogo_filter_batch', JSON.stringify(filterBatch));
   }, [filterBatch]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -165,7 +165,7 @@ const TrackingDashboard: React.FC = () => {
   };
 
   const handleDeleteClick = useCallback((id: string) => { setDeleteId(id); setShowDeleteConfirm(true); }, []);
-  const handleEdit = useCallback((order: Order) => { setEditingOrder(sanitize(order)); setActiveEditProductRow(null); setDetailOrder(null); }, []);
+  const handleEdit = useCallback((order: Order) => { setEditingOrder(JSON.parse(JSON.stringify(order))); setActiveEditProductRow(null); setDetailOrder(null); }, []);
   const handleSplitBatch = useCallback(async (order: Order) => { await storageService.splitOrderToNextBatch(order.id, order.batchId); toast.success('Đã chuyển đơn sang lô sau!'); if(detailOrder?.id === order.id) setDetailOrder(null); }, [detailOrder]);
 
   const handleShowQR = useCallback(async (order: Order) => { 
@@ -292,7 +292,7 @@ const TrackingDashboard: React.FC = () => {
                   const newAddress = data.display_name;
                   
                   // 1. Cập nhật Khách hàng (Ghim & Xác thực)
-                  const customer = customers.find(c => c.id === detailOrder.customerId) || storageService.findMatchingCustomer(detailOrder.customerPhone, detailOrder.address, detailOrder.customerName);
+                  const customer = customers.find(c => c.id === detailOrder.customerId) || storageService.findMatchingCustomer(detailOrder.customerPhone, detailOrder.address, detailOrder.customerId);
                   if (customer) {
                       await storageService.upsertCustomer({
                           ...customer,
@@ -329,7 +329,7 @@ const TrackingDashboard: React.FC = () => {
       zalo: () => { if(detailOrder) window.open(`https://zalo.me/${detailOrder.customerPhone.replace(/^0/,'84')}`, '_blank'); },
       print: () => { if(detailOrder) { const printWindow = window.open('', '_blank'); if (!printWindow) return; const itemsStr = detailOrder.items.map(i => `<tr><td style="padding:8px;border:1px solid #000;font-weight:bold;">${i.name}</td><td style="padding:8px;border:1px solid #000;text-align:center;">${i.quantity}</td><td style="padding:8px;border:1px solid #000;text-align:right;">${new Intl.NumberFormat('vi-VN').format(i.price)}</td><td style="padding:8px;border:1px solid #000;text-align:right;font-weight:bold;">${new Intl.NumberFormat('vi-VN').format(i.price * i.quantity)}</td></tr>`).join(''); const htmlContent = `<html><head><title>Phiếu #${detailOrder.id}</title><style>body { font-family: 'Helvetica', sans-serif; padding: 20px; font-size: 14px; color: #000; }h2 { text-align:center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }table { width: 100%; border-collapse: collapse; margin-top: 20px; }th { border: 1px solid #000; padding: 10px; background: #fff; text-align: left; font-weight: bold; text-transform: uppercase; }.info { margin-bottom: 5px; font-size: 15px; }.label { display:inline-block; width: 80px; font-weight: bold; }.total-row td { border-top: 2px solid #000; font-size: 16px; font-weight: bold; padding: 15px 5px; }</style></head><body><h2>PHIẾU GIAO HÀNG #${detailOrder.id}</h2><div class="info"><span class="label">Khách:</span> <b>${detailOrder.customerName}</b></div><div class="info"><span class="label">SĐT:</span> ${detailOrder.customerPhone}</div><div class="info"><span class="label">Địa chỉ:</span> ${detailOrder.address}</div>${detailOrder.notes ? `<div class="info" style="margin-top:10px;font-style:italic;">Ghi chú: ${detailOrder.notes}</div>` : ''}<table><thead><tr><th>Sản phẩm</th><th style="width:50px;text-align:center;">SL</th><th style="text-align:right;">Đơn giá</th><th style="text-align:right;">Thành tiền</th></tr></thead><tbody>${itemsStr}<tr class="total-row"><td colspan="3" style="text-align:right;">TỔNG CỘNG:</td><td style="text-align:right;">${new Intl.NumberFormat('vi-VN').format(detailOrder.totalPrice)}đ</td></tr></tbody></table><div style="margin-top: 40px; border-top: 1px dashed #000; padding-top: 10px; text-align: center; font-size: 12px; font-style: italic;">Cảm ơn quý khách!</div></body></html>`; printWindow.document.write(htmlContent); printWindow.document.close(); printWindow.print(); } },
       delete: () => { if(detailOrder) { handleDeleteClick(detailOrder.id); setDetailOrder(null); } },
-      edit: () => { if(detailOrder) { setEditingOrder(sanitize(detailOrder)); setDetailOrder(null); } },
+      edit: () => { if(detailOrder) { setEditingOrder(JSON.parse(JSON.stringify(detailOrder))); setDetailOrder(null); } },
       setStatus: async (status: OrderStatus) => { if(detailOrder) { await storageService.updateStatus(detailOrder.id, status, undefined, {name: detailOrder.customerName, address: detailOrder.address}); setDetailOrder({...detailOrder, status}); } },
       confirmPayment: async ( ) => { if(detailOrder) { await storageService.updatePaymentVerification(detailOrder.id, true, { name: detailOrder.customerName }); setDetailOrder({...detailOrder, paymentVerified: true}); toast.success("Đã xác nhận thanh toán"); } },
       splitBatch: () => { if(detailOrder) { handleSplitBatch(detailOrder); } },
@@ -388,7 +388,7 @@ const TrackingDashboard: React.FC = () => {
       if (order.customerId && customerMap.has(order.customerId)) {
           return customerMap.get(order.customerId);
       }
-      return storageService.findMatchingCustomer(order.customerPhone, order.address, order.customerName);
+      return storageService.findMatchingCustomer(order.customerPhone, order.address, order.customerId);
   };
 
   const filteredOrders = useMemo(() => {
@@ -706,7 +706,7 @@ const TrackingDashboard: React.FC = () => {
              </div>
              <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${isHeaderVisible ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
-                    <div className="flex gap-2 overflow-x-auto pb-1">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                         <div className="relative flex-1 min-w-[100px] flex items-center gap-1">
                              <button ref={batchDropdownBtnRef} onClick={() => openDropdown('BATCH')} className="flex-grow pl-2 pr-6 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 text-left flex items-center justify-between outline-none truncate" aria-label="Chọn lô hàng">
                                  <span className="truncate">{getLabel('BATCH')}</span>
@@ -757,7 +757,7 @@ const TrackingDashboard: React.FC = () => {
           </div>
       )}
 
-      {activeDropdown && (<div id="floating-dropdown-portal" className="fixed z-[9999] bg-white border border-gray-100 rounded-lg shadow-xl max-h-80 overflow-y-auto p-1 animate-fade-in" style={{ top: dropdownPos.top, left: dropdownPos.left, minWidth: dropdownPos.width }}>
+      {activeDropdown && (<div id="floating-dropdown-portal" className="fixed z-[9999] bg-white border border-gray-100 rounded-lg shadow-xl max-h-60 overflow-y-auto p-1 animate-fade-in" style={{ top: dropdownPos.top, left: dropdownPos.left, minWidth: dropdownPos.width }}>
         <div onClick={() => activeDropdown === 'STATUS' ? setFilterStatus([]) : setFilterBatch([])} className={`px-3 py-2 rounded-md text-xs font-bold cursor-pointer flex items-center gap-2 transition-colors ${(activeDropdown === 'STATUS' ? filterStatus.length : filterBatch.length) === 0 ? 'bg-eco-50 text-eco-700' : 'hover:bg-gray-50 text-gray-700'}`}><i className={`fas ${(activeDropdown === 'STATUS' ? filterStatus.length : filterBatch.length) === 0 ? 'fa-check-square' : 'fa-square text-gray-300'}`}></i>Tất cả</div>
         <div className="border-t border-gray-50 my-1"></div>
         {activeDropdown === 'STATUS' ? (Object.entries(statusLabels).map(([key, label]) => { const status = key as OrderStatus; const isSelected = filterStatus.includes(status); return <div key={status} onClick={() => toggleFilter('STATUS', status)} className={`px-3 py-2 rounded-md text-xs font-medium cursor-pointer flex items-center gap-2 transition-colors ${isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'}`}><i className={`fas ${isSelected ? 'fa-check-square' : 'fa-square text-gray-300'}`}></i>{label}</div>; })) : (batches.map(batch => { const isSelected = filterBatch.includes(batch); return <div key={batch} onClick={() => toggleFilter('BATCH', batch)} className={`px-3 py-2 rounded-md text-xs font-medium cursor-pointer flex items-center gap-2 transition-colors ${isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'}`}><i className={`fas ${isSelected ? 'fa-check-square' : 'fa-square text-gray-300'}`}></i>{batch}</div>; }))}
@@ -848,7 +848,7 @@ const TrackingDashboard: React.FC = () => {
 
       {/* Floating Action Bar for Bulk Actions */}
       {isSelectionMode && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[95%] max-w-2xl bg-gray-900/95 backdrop-blur text-white p-2 rounded-2xl shadow-2xl animate-slide-up border border-gray-700 flex items-center justify-between overflow-x-auto">
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[95%] max-w-2xl bg-gray-900/95 backdrop-blur text-white p-2 rounded-2xl shadow-2xl animate-slide-up border border-gray-700 flex items-center justify-between overflow-x-auto no-scrollbar">
               <div className="flex items-center gap-3 pl-2 pr-4 border-r border-gray-700 shrink-0">
                   <div className="flex flex-col items-center">
                       <span className="font-black text-xl leading-none text-eco-500">{selectedOrderIds.size}</span>
@@ -926,7 +926,7 @@ const TrackingDashboard: React.FC = () => {
                                     className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:border-blue-500 text-gray-800" 
                                 />
                                 {activeEditProductRow === idx && (
-                                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-48 overflow-y-auto no-scrollbar">
                                         {products.filter(p => !item.name || normalizeString(p.name).includes(normalizeString(item.name))).map(p => (
                                             <div key={p.id} onMouseDown={() => selectProductForEditItem(idx, p)} className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex justify-between items-center border-b border-gray-50 last:border-0">
                                                 <div className="flex flex-col">

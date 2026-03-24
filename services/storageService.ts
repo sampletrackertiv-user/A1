@@ -540,7 +540,7 @@ export const storageService = {
     // 3. Listen for Cloud Updates
     let unsubFirestore = () => {};
     if (isOnline()) {
-        const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(2000));
+        const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(400));
         unsubFirestore = onSnapshot(q, (snap) => {
             const list: Order[] = [];
             snap.forEach(d => list.push(d.data() as Order));
@@ -602,12 +602,7 @@ export const storageService = {
 
   saveOrder: async (order: Order) => {
     const now = Date.now();
-    // Ensure paymentVerified is initialized to false for new orders if not provided
-    const oSave: Order = { 
-        ...order, 
-        updatedAt: now,
-        paymentVerified: order.paymentVerified ?? false 
-    };
+    const oSave = { ...order, updatedAt: now };
     const list = ensureOrdersLoaded();
     
     // Check if it's an update or new
@@ -1054,10 +1049,6 @@ export const storageService = {
       return list.find(c => normalizeString(c.address) === nAddr);
   },
 
-  getOrders: (): Order[] => {
-      return ensureOrdersLoaded();
-  },
-
   // --- NOTIFICATION MANAGEMENT ---
   subscribeNotifications: (callback: (notifs: Notification[]) => void) => {
       const load = () => {
@@ -1129,22 +1120,5 @@ export const storageService = {
       }
       await storageService.importCustomersBatch(fakeCustomers, true);
       return { count, duration: Date.now() - start };
-  },
-
-  // NEW: Migration to fix missing paymentVerified fields
-  fixMissingPaymentVerified: async () => {
-    if (!isOnline()) return 0;
-    const snap = await getDocs(collection(db, "orders"));
-    const batch = writeBatch(db);
-    let count = 0;
-    snap.forEach(d => {
-      const data = d.data() as Order;
-      if (data.paymentVerified === undefined) {
-        batch.update(d.ref, { paymentVerified: false, updatedAt: Date.now() });
-        count++;
-      }
-    });
-    if (count > 0) await batch.commit();
-    return count;
   }
 };

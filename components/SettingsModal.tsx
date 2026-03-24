@@ -162,31 +162,18 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
       } catch (e: any) { toast.error("Lỗi Import"); } finally { setIsRunningTest(false); }
   };
 
-    const handleRecalculateStock = async () => {
-        setIsRunningTest(true);
-        try {
-            const count = await storageService.recalculateInventoryFromOrders();
-            setTestResult(`Đã cập nhật lại tồn kho cho ${count} sản phẩm bị lệch.`);
-            toast.success("Đồng bộ kho hoàn tất!");
-        } catch (e: any) {
-            toast.error("Lỗi đồng bộ kho");
-        } finally {
-            setIsRunningTest(false);
-        }
-    };
-
-    const handleFixPaymentVerified = async () => {
-        setIsRunningTest(true);
-        try {
-            const count = await storageService.fixMissingPaymentVerified();
-            setTestResult(`Đã cập nhật trạng thái thanh toán cho ${count} đơn hàng cũ.`);
-            toast.success(`Đã sửa ${count} đơn hàng!`);
-        } catch (e: any) {
-            toast.error("Lỗi cập nhật dữ liệu");
-        } finally {
-            setIsRunningTest(false);
-        }
-    };
+  const handleRecalculateStock = async () => {
+      setIsRunningTest(true);
+      try {
+          const count = await storageService.recalculateInventoryFromOrders();
+          setTestResult(`Đã cập nhật lại tồn kho cho ${count} sản phẩm bị lệch.`);
+          toast.success("Đồng bộ kho hoàn tất!");
+      } catch (e: any) {
+          toast.error("Lỗi đồng bộ kho");
+      } finally {
+          setIsRunningTest(false);
+      }
+  };
 
   if (!isOpen) return null;
 
@@ -303,7 +290,6 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     )}
 
                     <div className="grid grid-cols-1 gap-2">
-                        <button onClick={handleFixPaymentVerified} disabled={isRunningTest} className="w-full py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg font-black text-[9px] uppercase">Sửa lỗi Payment Status (Đơn cũ)</button>
                         <button onClick={handleMarkOld} disabled={isRunningTest} className="w-full py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-black text-[9px] uppercase">Gỡ nhãn NEW toàn bộ khách</button>
                         <button onClick={handleRecalculateStock} disabled={isRunningTest} className="w-full py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg font-black text-[9px] uppercase">Đồng bộ lại Tồn Kho (Fix Lỗi)</button>
                         <button onClick={runStressTest} disabled={isRunningTest} className="w-full py-2 bg-yellow-400 hover:bg-yellow-500 rounded-lg font-black text-[9px] uppercase">Stress Test (10k Khách)</button>

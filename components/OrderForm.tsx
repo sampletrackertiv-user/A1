@@ -254,7 +254,6 @@ const OrderForm: React.FC = () => {
         shippingFee: shippingFee,
         discount: discount,
         paymentMethod: PaymentMethod.CASH, 
-        paymentVerified: false,
         status: OrderStatus.PENDING, 
         createdAt: Date.now(), 
         updatedAt: Date.now(), 
