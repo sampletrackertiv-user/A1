@@ -3,7 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Order, OrderStatus, PaymentMethod } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { storageService, normalizePhone, normalizeString } from '../services/storageService';
+import { storageService, normalizePhone, normalizeString, safeSave } from '../services/storageService';
 
 interface Props {
     isOpen: boolean;
@@ -55,7 +55,7 @@ const ShipperSummaryModal: React.FC<Props> = ({ isOpen, onClose, orders, batchNa
     // Save expenses whenever they change
     useEffect(() => {
         if (isOpen) {
-            localStorage.setItem(storageKey, JSON.stringify(expenses));
+            safeSave(storageKey, expenses);
         }
     }, [expenses, isOpen, storageKey]);
 
